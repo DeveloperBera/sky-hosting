@@ -14,7 +14,7 @@ services:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        value: postgresql://postgres:afPQJWEYWbhqrZUrxBtypkNsJHPnPLyO@postgres.railway.internal:5432/railway
+        sync: false   # set this in the Render dashboard — use the PUBLIC Railway URL (crossover.proxy.rlwy.net:...)
       - key: JWT_SECRET
         generateValue: true
       - key: BASE_DOMAIN
