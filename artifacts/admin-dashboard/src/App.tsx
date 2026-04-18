@@ -13,6 +13,7 @@ import DeploymentsPage from "@/pages/deployments";
 import DeploymentDetailPage from "@/pages/deployment-detail";
 import UsersPage from "@/pages/users";
 import SettingsPage from "@/pages/settings";
+import ApiKeysPage from "@/pages/api-keys";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={SettingsPage} />
+      </Route>
+      <Route path="/api-keys">
+        <ProtectedRoute component={ApiKeysPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

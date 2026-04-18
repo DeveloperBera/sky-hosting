@@ -16,6 +16,7 @@ import {
 import { requireAuth } from "../middlewares/auth";
 import { generateId } from "../lib/id";
 import { runDeployment, getLiveUrl } from "../lib/deploy-engine";
+import { stopProcess } from "../lib/process-manager";
 import { logActivity } from "../lib/activity";
 import { nanoid } from "nanoid";
 
@@ -176,6 +177,10 @@ router.delete("/v1/deployments/:id", requireAuth, async (req, res): Promise<void
   if (deployment.userId !== req.user!.id && req.user!.role !== "admin") {
     res.status(404).json({ error: "Deployment not found" });
     return;
+  }
+
+  if (deployment.subdomain) {
+    await stopProcess(deployment.subdomain).catch(() => {});
   }
 
   await db.delete(deploymentsTable).where(eq(deploymentsTable.id, rawId));

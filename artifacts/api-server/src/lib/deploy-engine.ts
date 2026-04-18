@@ -7,6 +7,7 @@ import { db, deploymentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { logActivity } from "./activity";
+import { startProcess, stopProcess } from "./process-manager";
 
 const execAsync = promisify(exec);
 
@@ -168,8 +169,12 @@ export async function runDeployment(deploymentId: string): Promise<void> {
           startCommand: null,
         })
         .where(eq(deploymentsTable.id, deploymentId));
-    } else {
+      await appendLog(deploymentId, `Static site deployed at: ${liveUrl}`);
+    } else if (startCmd) {
       await appendLog(deploymentId, `Starting application with: ${startCmd}`);
+      const envVars = buildEnvString(deployment.envVarsEncrypted);
+      const assignedPort = await startProcess(deploymentId, subdomain, startCmd, envVars);
+
       await db.update(deploymentsTable)
         .set({
           status: "running",
@@ -177,9 +182,10 @@ export async function runDeployment(deploymentId: string): Promise<void> {
           deployedAt: new Date(),
           buildCommand: buildCmd,
           startCommand: startCmd,
+          port: assignedPort,
         })
         .where(eq(deploymentsTable.id, deploymentId));
-      await appendLog(deploymentId, `Application deployed at: ${liveUrl}`);
+      await appendLog(deploymentId, `Application live at: ${liveUrl} (internal port: ${assignedPort})`);
     }
 
     await logActivity({

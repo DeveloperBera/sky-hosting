@@ -12,7 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Server, Users, Settings, LogOut, TerminalSquare } from "lucide-react";
+import { LayoutDashboard, Server, Users, Settings, LogOut, TerminalSquare, Key } from "lucide-react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -21,6 +21,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Deployments", href: "/deployments", icon: Server },
+    { name: "API Keys", href: "/api-keys", icon: Key },
     { name: "Users", href: "/users", icon: Users },
     { name: "Settings", href: "/settings", icon: Settings },
   ];

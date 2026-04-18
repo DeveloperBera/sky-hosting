@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable } from "@workspace/db";
 import { LoginBody, GetMeResponse } from "@workspace/api-zod";
-import { hashPassword, verifyPassword, generateJwt } from "../lib/auth";
+import { hashPassword, verifyPassword, generateJwt, generateApiKey } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -71,6 +71,20 @@ router.get("/v1/auth/me", requireAuth, async (req, res): Promise<void> => {
     deploymentCount: countResult?.count ?? 0,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+  });
+});
+
+router.post("/v1/auth/regenerate-key", requireAuth, async (req, res): Promise<void> => {
+  const { key, hash, prefix } = generateApiKey();
+
+  await db.update(usersTable)
+    .set({ apiKeyHash: hash, apiKeyPrefix: prefix })
+    .where(eq(usersTable.id, req.user!.id));
+
+  res.json({
+    apiKey: key,
+    apiKeyPrefix: prefix,
+    message: "New API key generated. Store it safely — it will only be shown once.",
   });
 });
 
