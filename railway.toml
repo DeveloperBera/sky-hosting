@@ -7,10 +7,8 @@ startCommand = "node --enable-source-maps artifacts/api-server/dist/index.mjs"
 healthcheckPath = "/api/healthz"
 healthcheckTimeout = 30
 
-[[services]]
-name = "api"
-port = 8080
-
-[[services]]
-name = "dashboard"
-port = 3001
+[deploy.env]
+DATABASE_URL = "postgresql://postgres:afPQJWEYWbhqrZUrxBtypkNsJHPnPLyO@postgres.railway.internal:5432/railway"
+NODE_ENV = "production"
+PORT = "8080"
+DEPLOY_DIR = "/var/data/sky-hosting-apps"

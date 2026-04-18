@@ -1,5 +1,5 @@
 services:
-  # API Server
+  # Sky-Hosting API Server
   - type: web
     name: sky-hosting-api
     env: node
@@ -14,23 +14,23 @@ services:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        fromDatabase:
-          name: sky-hosting-db
-          property: connectionString
+        value: postgresql://postgres:afPQJWEYWbhqrZUrxBtypkNsJHPnPLyO@postgres.railway.internal:5432/railway
       - key: JWT_SECRET
         generateValue: true
       - key: BASE_DOMAIN
-        value: sky-hosting.com
+        sync: false   # set to your Render app URL e.g. sky-hosting-api.onrender.com
       - key: ADMIN_USERNAME
         value: admin
       - key: ADMIN_PASSWORD
         generateValue: true
+      - key: DEPLOY_DIR
+        value: /var/data/sky-hosting-apps
     disk:
       name: deploy-storage
-      mountPath: /root/sky-hosting-apps
+      mountPath: /var/data
       sizeGB: 10
 
-  # Admin Dashboard
+  # Sky-Hosting Admin Dashboard (static)
   - type: web
     name: sky-hosting-dashboard
     env: static
@@ -42,14 +42,7 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-    envVars:
-      - key: BASE_PATH
-        value: /
-      - key: PORT
-        value: 3000
-
-databases:
-  - name: sky-hosting-db
-    databaseName: sky_hosting
-    plan: free
-    region: oregon
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
