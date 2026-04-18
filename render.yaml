@@ -1,0 +1,55 @@
+services:
+  # API Server
+  - type: web
+    name: sky-hosting-api
+    env: node
+    region: oregon
+    plan: standard
+    buildCommand: "pnpm install && pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/api-server run build"
+    startCommand: "node --enable-source-maps artifacts/api-server/dist/index.mjs"
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sky-hosting-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BASE_DOMAIN
+        value: sky-hosting.com
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
+    disk:
+      name: deploy-storage
+      mountPath: /root/sky-hosting-apps
+      sizeGB: 10
+
+  # Admin Dashboard
+  - type: web
+    name: sky-hosting-dashboard
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: "pnpm install && pnpm --filter @workspace/api-spec run codegen && pnpm --filter @workspace/admin-dashboard run build"
+    staticPublishPath: artifacts/admin-dashboard/dist/public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: BASE_PATH
+        value: /
+      - key: PORT
+        value: 3000
+
+databases:
+  - name: sky-hosting-db
+    databaseName: sky_hosting
+    plan: free
+    region: oregon

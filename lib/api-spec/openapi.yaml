@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Sky-Hosting API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: deployments
+    description: Deployment operations
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
@@ -24,7 +30,555 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/deploy:
+    post:
+      operationId: createDeployment
+      tags: [deployments]
+      summary: Deploy a GitHub repository
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeploymentRequest"
+      responses:
+        "201":
+          description: Deployment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/deployments:
+    get:
+      operationId: listDeployments
+      tags: [deployments]
+      summary: List deployments for authenticated user
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [building, running, failed, stopped]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/deployments/{id}:
+    get:
+      operationId: getDeployment
+      tags: [deployments]
+      summary: Get deployment status and logs
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deployment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentDetail"
+        "404":
+          description: Deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteDeployment
+      tags: [deployments]
+      summary: Remove a deployment
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deployment deleted
+        "404":
+          description: Deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/deployments/{id}/logs:
+    get:
+      operationId: getDeploymentLogs
+      tags: [deployments]
+      summary: Get deployment build and runtime logs
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [build, runtime, all]
+            default: all
+      responses:
+        "200":
+          description: Deployment logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentLogsResponse"
+        "404":
+          description: Deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/deployments/{id}/env:
+    get:
+      operationId: getDeploymentEnv
+      tags: [deployments]
+      summary: Get deployment environment variables (keys only)
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Environment variable keys
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvVarsResponse"
+    put:
+      operationId: updateDeploymentEnv
+      tags: [deployments]
+      summary: Update deployment environment variables
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEnvRequest"
+      responses:
+        "200":
+          description: Updated environment variables
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvVarsResponse"
+
+  /v1/deployments/{id}/restart:
+    post:
+      operationId: restartDeployment
+      tags: [deployments]
+      summary: Restart a deployment
+      security:
+        - apiKeyAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deployment restarted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "404":
+          description: Deployment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: List all users (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: adminCreateUser
+      tags: [admin]
+      summary: Create user with API key (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithApiKey"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/admin/users/{id}:
+    get:
+      operationId: adminGetUser
+      tags: [admin]
+      summary: Get user details (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: adminUpdateUser
+      tags: [admin]
+      summary: Update user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: adminDeleteUser
+      tags: [admin]
+      summary: Delete/revoke user access (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/admin/users/{id}/regenerate-key:
+    post:
+      operationId: adminRegenerateApiKey
+      tags: [admin]
+      summary: Regenerate API key for user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserWithApiKey"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/admin/deployments:
+    get:
+      operationId: adminListDeployments
+      tags: [admin]
+      summary: List all deployments across all users (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [building, running, failed, stopped]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: All deployments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDeploymentListResponse"
+
+  /v1/admin/stats:
+    get:
+      operationId: adminGetStats
+      tags: [admin]
+      summary: System statistics (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: System stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/admin/settings:
+    get:
+      operationId: adminGetSettings
+      tags: [admin]
+      summary: Get system settings (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: System settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+    put:
+      operationId: adminUpdateSettings
+      tags: [admin]
+      summary: Update system settings (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsRequest"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSettings"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: http
+      scheme: bearer
+      description: API key (sk_live_xxx format)
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +588,470 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, user]
+        isActive:
+          type: boolean
+        apiKeyPrefix:
+          type: ["string", "null"]
+        deploymentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - role
+        - isActive
+        - deploymentCount
+        - createdAt
+        - updatedAt
+
+    UserWithApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [admin, user]
+        isActive:
+          type: boolean
+        apiKey:
+          type: string
+        deploymentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - role
+        - isActive
+        - apiKey
+        - deploymentCount
+        - createdAt
+        - updatedAt
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+          default: user
+      required:
+        - username
+        - password
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        isActive:
+          type: boolean
+        password:
+          type: string
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - users
+        - total
+        - limit
+        - offset
+
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        githubUrl:
+          type: string
+        branch:
+          type: string
+        status:
+          type: string
+          enum: [queued, building, running, failed, stopped]
+        framework:
+          type: ["string", "null"]
+          enum: [nodejs, python, static, docker, go, "null"]
+        liveUrl:
+          type: ["string", "null"]
+        logsUrl:
+          type: ["string", "null"]
+        subdomain:
+          type: ["string", "null"]
+        customDomain:
+          type: ["string", "null"]
+        buildCommand:
+          type: ["string", "null"]
+        startCommand:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deployedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - userId
+        - name
+        - githubUrl
+        - branch
+        - status
+        - createdAt
+        - updatedAt
+
+    DeploymentDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        githubUrl:
+          type: string
+        branch:
+          type: string
+        status:
+          type: string
+          enum: [queued, building, running, failed, stopped]
+        framework:
+          type: ["string", "null"]
+          enum: [nodejs, python, static, docker, go, "null"]
+        liveUrl:
+          type: ["string", "null"]
+        logsUrl:
+          type: ["string", "null"]
+        subdomain:
+          type: ["string", "null"]
+        customDomain:
+          type: ["string", "null"]
+        buildCommand:
+          type: ["string", "null"]
+        startCommand:
+          type: ["string", "null"]
+        buildLogs:
+          type: ["string", "null"]
+        runtimeLogs:
+          type: ["string", "null"]
+        errorMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deployedAt:
+          type: ["string", "null"]
+          format: date-time
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - id
+        - userId
+        - name
+        - githubUrl
+        - branch
+        - status
+        - createdAt
+        - updatedAt
+        - user
+
+    CreateDeploymentRequest:
+      type: object
+      properties:
+        github_url:
+          type: string
+        branch:
+          type: string
+          default: main
+        name:
+          type: string
+        framework:
+          type: string
+          enum: [nodejs, python, static, docker, go]
+        build_command:
+          type: string
+        start_command:
+          type: string
+        env_vars:
+          type: object
+          additionalProperties:
+            type: string
+        github_token:
+          type: string
+      required:
+        - github_url
+
+    DeploymentListResponse:
+      type: object
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deployment"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - deployments
+        - total
+        - limit
+        - offset
+
+    AdminDeploymentListResponse:
+      type: object
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeploymentDetail"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - deployments
+        - total
+        - limit
+        - offset
+
+    DeploymentLogsResponse:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+        buildLogs:
+          type: ["string", "null"]
+        runtimeLogs:
+          type: ["string", "null"]
+      required:
+        - deploymentId
+
+    EnvVarsResponse:
+      type: object
+      properties:
+        deploymentId:
+          type: string
+        keys:
+          type: array
+          items:
+            type: string
+      required:
+        - deploymentId
+        - keys
+
+    UpdateEnvRequest:
+      type: object
+      properties:
+        env_vars:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - env_vars
+
+    SystemStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeUsers:
+          type: integer
+        totalDeployments:
+          type: integer
+        runningDeployments:
+          type: integer
+        buildingDeployments:
+          type: integer
+        failedDeployments:
+          type: integer
+        stoppedDeployments:
+          type: integer
+        deploymentsToday:
+          type: integer
+        deploymentsThisWeek:
+          type: integer
+        frameworkBreakdown:
+          type: object
+          additionalProperties:
+            type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required:
+        - totalUsers
+        - activeUsers
+        - totalDeployments
+        - runningDeployments
+        - buildingDeployments
+        - failedDeployments
+        - stoppedDeployments
+        - deploymentsToday
+        - deploymentsThisWeek
+        - frameworkBreakdown
+        - recentActivity
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        deploymentId:
+          type: ["string", "null"]
+        deploymentName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - message
+        - userId
+        - username
+        - createdAt
+
+    SystemSettings:
+      type: object
+      properties:
+        baseDomain:
+          type: string
+        maxDeploymentsPerUser:
+          type: integer
+        allowPublicRegistration:
+          type: boolean
+        defaultBuildTimeout:
+          type: integer
+        enableDockerDeployments:
+          type: boolean
+        maintenanceMode:
+          type: boolean
+        rateLimitPerMinute:
+          type: integer
+      required:
+        - baseDomain
+        - maxDeploymentsPerUser
+        - allowPublicRegistration
+        - defaultBuildTimeout
+        - enableDockerDeployments
+        - maintenanceMode
+        - rateLimitPerMinute
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        baseDomain:
+          type: string
+        maxDeploymentsPerUser:
+          type: integer
+        allowPublicRegistration:
+          type: boolean
+        defaultBuildTimeout:
+          type: integer
+        enableDockerDeployments:
+          type: boolean
+        maintenanceMode:
+          type: boolean
+        rateLimitPerMinute:
+          type: integer

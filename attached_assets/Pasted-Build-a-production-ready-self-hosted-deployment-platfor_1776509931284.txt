@@ -1,0 +1,113 @@
+Build a production-ready, self-hosted deployment platform called "Sky-Hosting" - a Heroku/Vercel alternative that deploys both frontend and backend applications from GitHub URLs via API, returning live HTTPS URLs.
+
+**CRITICAL REQUIREMENTS:**
+- This must be a FULLY FUNCTIONAL production system - NO mockups, NO demo data, NO placeholder functionality
+- Every endpoint must actually deploy real code and return REAL live URLs
+- All admin features must work with real data and real user management
+- The system must be deployable on Render.com or Railway.app (provide full deployment configuration for both)
+
+**Core Architecture:**
+- REST API that accepts GitHub repository URLs and deploys them
+- API key authentication for bot/service integration
+- Admin dashboard for managing users, deployments, and system settings
+- Automatic SSL/TLS certificate provisioning for all deployed apps
+- Support for Node.js, Python, static sites, and Docker-based deployments
+- Real build logs and deployment status tracking
+
+**API Endpoints (all fully functional):**
+POST /api/v1/deploy - Accept GitHub URL, return deployment ID and live URL
+GET /api/v1/deployments/:id - Get deployment status and logs
+GET /api/v1/deployments - List all deployments for authenticated user
+DELETE /api/v1/deployments/:id - Remove deployment
+POST /api/v1/auth/login - User/admin authentication
+GET /api/v1/admin/users - List all users (admin only)
+POST /api/v1/admin/users - Create user with API key (admin only)
+DELETE /api/v1/admin/users/:id - Revoke user access (admin only)
+GET /api/v1/admin/stats - System statistics (deployments, resource usage)
+
+**Admin Dashboard Features:**
+- User management: Create, disable, delete user accounts
+- API key generation and revocation per user
+- View all deployments across all users
+- System resource monitoring (CPU, memory, disk)
+- Deployment logs viewer with real-time updates
+- Global settings: Domain configuration, resource limits, default buildpacks
+
+**Deployment Engine:**
+- Clone GitHub repository (public or private with access token)
+- Auto-detect framework (Node.js, Python, Go, static)
+- Run build process in isolated environment
+- Deploy to appropriate runtime (container or static hosting)
+- Assign unique subdomain: https://[app-name]-[random].sky-hosting.com
+- Provision SSL certificate automatically
+- Support custom domains via admin panel
+- Environment variable management per deployment
+
+**Technical Stack (choose one consistent approach):**
+Option A - Use Dokploy (open-source Heroku alternative) as base and wrap with custom API
+Option B - Build with Docker + Traefik + Node.js API from scratch
+Option C - Use Coolify's underlying engine with custom frontend
+
+**Deployment Configuration for Render.com:**
+Provide complete render.yaml with:
+- Web service for API server
+- Web service for admin dashboard
+- Background worker for build processing
+- PostgreSQL database
+- Redis for build queue
+- Environment variables template
+- Health check endpoints
+- Disk persistence for deployed applications
+
+**Deployment Configuration for Railway.app:**
+Provide complete railway.json with:
+- All required services
+- Volume mounts for persistent app storage
+- Network configuration
+- Environment variable setup
+
+**Security Requirements:**
+- API key authentication with scoped permissions
+- JWT for admin dashboard sessions
+- Build isolation (each build in separate container/sandbox)
+- Rate limiting per API key
+- Secure secret storage for environment variables
+- CSRF protection on admin routes
+
+**Bot Integration Example:**
+The system must accept requests like:
+curl -X POST https://sky-hosting.com/api/v1/deploy \
+  -H "Authorization: Bearer sk_live_xxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"github_url": "https://github.com/user/repo", "branch": "main"}'
+
+Response:
+{
+  "deployment_id": "dep_abc123",
+  "status": "building",
+  "live_url": "https://repo-abc123.sky-hosting.com",
+  "logs_url": "https://sky-hosting.com/deployments/dep_abc123"
+}
+
+**Expected Deliverables:**
+1. Complete source code for API server and admin dashboard
+2. Database schema and migration files
+3. Dockerfile(s) for containerized deployment
+4. render.yaml for one-click Render deployment
+5. railway.json for one-click Railway deployment
+6. Setup instructions and API documentation
+7. Initial admin account creation script
+
+**Verification Checklist:**
+- [ ] Deploy to Render/Railway using provided configuration
+- [ ] Create admin account and log into dashboard
+- [ ] Generate API key for a new user
+- [ ] Use API key to deploy a real GitHub repository
+- [ ] Access the deployed application at the returned live URL
+- [ ] View deployment logs in admin dashboard
+- [ ] Delete deployment and verify cleanup
+
+**Platform Name:** Sky-Hosting
+**Primary Domain:** sky-hosting.com (configure for actual deployment)
+
+This must be a COMPLETE, WORKING system. No simulated responses, no hardcoded demo data. All features must function against real infrastructure.
